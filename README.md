@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CreatorKit (çalışma adı)
 
-## Getting Started
+YouTube, TikTok ve Instagram içerik üreticileri için ücretsiz araçlar sitesi. Next.js 16 (App Router), TypeScript, Tailwind 4.
 
-First, run the development server:
+## Çalıştırma
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # değerleri doldur
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Hazır araçlar
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Sayfa | Dosyalar |
+|---|---|
+| `/youtube-thumbnail-downloader` | `src/components/tools/ThumbnailDownloader.tsx`, `src/app/api/thumbnail/route.ts` |
+| `/hashtag-generator` | `src/components/tools/HashtagGenerator.tsx`, `src/app/api/hashtags/route.ts` (ANTHROPIC_API_KEY gerekir) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Yeni araç ekleme
 
-## Learn More
+1. `src/lib/tools.ts` içine kayıt ekle (`status: "live"`, SEO metinleri, how-to, FAQ).
+2. `src/app/<slug>/page.tsx` oluştur (mevcut iki sayfayı kopyala) ve araç bileşenini yaz.
+3. İstersen `opengraph-image.tsx` kopyala.
 
-To learn more about Next.js, take a look at the following resources:
+Ana sayfa, menü, footer, sitemap, llms.txt ve "diğer araçlar" linkleri otomatik güncellenir.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## SEO / GEO
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Her sayfada benzersiz title, description, canonical, Open Graph, Twitter kartı ve otomatik OG görseli
+- JSON-LD: WebSite, Organization, SoftwareApplication, HowTo, FAQPage, BreadcrumbList, ItemList
+- `sitemap.xml`, `robots.txt` (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot vb. izinli, `/api/` kapalı)
+- `/llms.txt` — yapay zekâ asistanları için site özeti
+- Görünür "Last updated" tarihi, kısa ve alıntılanabilir intro/FAQ metinleri
+- Search Console ve Bing doğrulama kodları env üzerinden
+- Fontlar self-host (Google Fonts isteği yok), sayfalar statik üretiliyor
 
-## Deploy on Vercel
+## Yayına alma (Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Repo'yu GitHub'a gönder, Vercel'de import et.
+2. Env değişkenlerini Vercel'e gir; `NEXT_PUBLIC_SITE_URL` gerçek domain olmalı.
+3. Domain bağla, Search Console + Bing Webmaster'a `sitemap.xml` gönder.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Sonraki adımlar
+
+- Ürün adı ve domain (şu an `NEXT_PUBLIC_SITE_NAME` ile değişiyor)
+- Supabase: kullanıcılar, kalıcı kullanım limitleri (şu anki limit bellek içi, sunucular arası paylaşılmaz)
+- Ödeme (Stripe / Lemon Squeezy) ve Pro plan
+- Transcript, altyazı, başlık/açıklama araçları (`tools.ts` içinde "soon" olarak hazır)

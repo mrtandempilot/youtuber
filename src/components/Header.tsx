@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { site } from "@/lib/site";
+import { liveTools } from "@/lib/tools";
+
+export function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+      <span
+        aria-hidden
+        className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-accent-ink text-xs"
+      >
+        ▶
+      </span>
+      {site.name}
+    </Link>
+  );
+}
+
+export function Header() {
+  return (
+    <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+        <Logo />
+        <nav aria-label="Tools" className="hidden gap-6 text-sm text-muted md:flex">
+          {liveTools.map((t) => (
+            <Link key={t.slug} href={`/${t.slug}`} className="hover:text-ink">
+              {t.name}
+            </Link>
+          ))}
+        </nav>
+        <Link
+          href="/#tools"
+          className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-bg hover:opacity-90"
+        >
+          All tools
+        </Link>
+      </div>
+    </header>
+  );
+}
