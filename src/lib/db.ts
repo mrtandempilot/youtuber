@@ -69,6 +69,7 @@ export async function upsertChannel(profileId: string, channel: Channel) {
         subscribers: channel.subscribers,
         views: channel.views,
         video_count: channel.videoCount,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "id" },
     ),
