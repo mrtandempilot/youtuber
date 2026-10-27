@@ -5,6 +5,7 @@ import { track } from "@/lib/analytics";
 import type { AnalyzedVideo, ChannelStats, VideoIssue } from "@/lib/channel-analysis";
 import type { Channel, ChannelAnalytics } from "@/lib/youtube-api";
 import { ApplyPanel } from "./analyzer/ApplyPanel";
+import { ChannelSettingsPanel } from "./analyzer/ChannelSettingsPanel";
 import { Bars, Card, Chips, fmt, pct, ScoreBadge, Stat, SuggestionView } from "./analyzer/parts";
 
 type Report = {
@@ -200,7 +201,7 @@ export function ChannelAnalyzer() {
 
 function ReportView({ report }: { report: Report }) {
   const { channel, stats, analytics, videos, context } = report;
-  const [tab, setTab] = useState<"overview" | "videos" | "new">("overview");
+  const [tab, setTab] = useState<"overview" | "videos" | "channel" | "new">("overview");
 
   return (
     <div id="report" className="mt-8 scroll-mt-20 space-y-5" aria-live="polite">
@@ -230,6 +231,7 @@ function ReportView({ report }: { report: Report }) {
           [
             ["overview", "Overview"],
             ["videos", "Fix old videos"],
+            ["channel", "Channel settings"],
             ["new", "Plan a new video"],
           ] as const
         ).map(([id, label]) => (
@@ -247,6 +249,7 @@ function ReportView({ report }: { report: Report }) {
 
       {tab === "overview" && <Overview report={report} />}
       {tab === "videos" && <VideoList videos={videos} context={context} mine={report.mine} />}
+      {tab === "channel" && <ChannelSettingsPanel channel={channel} videos={videos} context={context} mine={report.mine} />}
       {tab === "new" && <NewVideo context={context} hasShorts={stats.format.shorts.videos > 0} />}
 
       {!report.mine && (

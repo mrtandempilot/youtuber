@@ -19,7 +19,7 @@ async function apply(body: Record<string, unknown>) {
 
 // Opens Google's consent screen in a popup to add "edit videos" permission.
 // Resolves true when the popup reports success.
-function requestWritePermission(): Promise<boolean> {
+export function requestWritePermission(): Promise<boolean> {
   return new Promise((resolve) => {
     const url = "/api/auth/google?write=1&next=/auth/done";
     const popup = window.open(url, "ck-google", "width=520,height=680");

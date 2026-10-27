@@ -382,3 +382,105 @@ export function sanitizeMetadata(input: { title: string; description: string; ta
   }
   return { title, description, tags };
 }
+
+// ---------- Channel settings (connected owner with write permission) ----------
+
+// The writable fields of brandingSettings. channels.update resets anything not sent,
+// so we always send all of them, changing only what the creator chose.
+export type ChannelSettings = {
+  description: string;
+  keywords: string[];
+  unsubscribedTrailer: string | null;
+  country: string | null;
+  defaultLanguage: string | null;
+};
+
+type BrandingSettings = {
+  channel?: {
+    description?: string;
+    keywords?: string;
+    unsubscribedTrailer?: string;
+    country?: string;
+    defaultLanguage?: string;
+    trackingAnalyticsAccountId?: string;
+  };
+  image?: { bannerExternalUrl?: string };
+};
+
+export async function getChannelSettings(accessToken: string) {
+  const data = await yt<{ items?: { id: string; brandingSettings?: BrandingSettings }[] }>(
+    DATA,
+    "channels",
+    { part: "brandingSettings", mine: "true" },
+    { accessToken },
+  );
+  const item = data.items?.[0];
+  if (!item) throw new YtError("This Google account has no YouTube channel.", 404, "not_found");
+  const b = item.brandingSettings ?? {};
+  const settings: ChannelSettings = {
+    description: b.channel?.description ?? "",
+    keywords: parseKeywords(b.channel?.keywords),
+    unsubscribedTrailer: b.channel?.unsubscribedTrailer ?? null,
+    country: b.channel?.country ?? null,
+    defaultLanguage: b.channel?.defaultLanguage ?? null,
+  };
+  return { channelId: item.id, raw: b, settings };
+}
+
+// YouTube limits: channel description ≤ 1000 chars, keywords ≤ 500 chars (multi-word keywords are quoted).
+export function serializeKeywords(keywords: string[]): string {
+  const out: string[] = [];
+  let used = 0;
+  for (const raw of keywords) {
+    const k = raw.replace(/["<>,]/g, " ").replace(/\s+/g, " ").trim();
+    if (!k || out.some((o) => o.replace(/"/g, "").toLowerCase() === k.toLowerCase())) continue;
+    const token = k.includes(" ") ? `"${k}"` : k;
+    const cost = token.length + (out.length ? 1 : 0);
+    if (used + cost > 500) continue;
+    out.push(token);
+    used += cost;
+  }
+  return out.join(" ");
+}
+
+export function sanitizeChannelSettings(s: ChannelSettings): ChannelSettings {
+  let description = s.description.replace(/[<>]/g, "").trim();
+  if (description.length > 1000) description = description.slice(0, 1000).replace(/\s+\S*$/, "").trim();
+  return {
+    description,
+    keywords: parseKeywords(serializeKeywords(s.keywords)),
+    unsubscribedTrailer: s.unsubscribedTrailer && /^[\w-]{11}$/.test(s.unsubscribedTrailer) ? s.unsubscribedTrailer : null,
+    country: s.country && /^[A-Z]{2}$/.test(s.country) ? s.country : null,
+    defaultLanguage: s.defaultLanguage && /^[a-zA-Z-]{2,10}$/.test(s.defaultLanguage) ? s.defaultLanguage : null,
+  };
+}
+
+export async function updateChannelSettings(channelId: string, raw: BrandingSettings, next: ChannelSettings, accessToken: string) {
+  const channel: Record<string, string> = {
+    description: next.description,
+    keywords: serializeKeywords(next.keywords),
+  };
+  if (next.unsubscribedTrailer) channel.unsubscribedTrailer = next.unsubscribedTrailer;
+  if (next.country) channel.country = next.country;
+  if (next.defaultLanguage) channel.defaultLanguage = next.defaultLanguage;
+  if (raw.channel?.trackingAnalyticsAccountId) channel.trackingAnalyticsAccountId = raw.channel.trackingAnalyticsAccountId;
+
+  const brandingSettings: Record<string, unknown> = { channel };
+  if (raw.image?.bannerExternalUrl) brandingSettings.image = { bannerExternalUrl: raw.image.bannerExternalUrl };
+
+  const res = await fetch(`${DATA}/channels?part=brandingSettings`, {
+    method: "PUT",
+    headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ id: channelId, brandingSettings }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; errors?: { reason?: string }[] } };
+    const reason = body.error?.errors?.[0]?.reason ?? "";
+    if (res.status === 401) throw new YtError("Your Google session expired. Please reconnect.", 401, "unauthorized");
+    if (res.status === 403 && /insufficient|scope|permission/i.test(`${reason} ${body.error?.message}`))
+      throw new YtError("Permission to edit your channel is needed.", 403, "needs_write");
+    if (reason === "quotaExceeded") throw new YtError("Daily YouTube API quota reached. Please try again tomorrow.", 429, "quota");
+    throw new YtError(body.error?.message ?? `Channel update failed (${res.status})`, res.status >= 500 ? 502 : 400);
+  }
+}

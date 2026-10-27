@@ -10,7 +10,7 @@ Write titles, descriptions, tags and hashtags in the main language of the channe
 Never invent statistics, never promise specific view counts, never suggest clickbait that misrepresents the video.
 Tags: no "#", 2–4 words max each, most specific first. Hashtags: start with "#", no spaces, max 5.`;
 
-type Mode = "audit" | "improve" | "new" | "plan";
+type Mode = "audit" | "improve" | "new" | "plan" | "channel";
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -23,6 +23,28 @@ const GOALS: Record<string, string> = {
 };
 
 function prompt(mode: Mode, context: string, body: Record<string, unknown>): { prompt: string; maxTokens: number } | null {
+  if (mode === "channel") {
+    const c = (body.current ?? {}) as Record<string, unknown>;
+    const trailers = Array.isArray(body.trailerCandidates) ? body.trailerCandidates.slice(0, 5) : [];
+    return {
+      maxTokens: 2500,
+      prompt: `${context}
+
+Optimize this channel's settings for YouTube and Google search and for converting new visitors into subscribers.
+Current channel description:
+"""${str(c.description, 1200)}"""
+Current channel keywords: ${Array.isArray(c.keywords) ? c.keywords.slice(0, 40).join(", ") : "none"}
+Current trailer for non-subscribers: ${str(c.unsubscribedTrailer, 20) || "none"}
+Trailer candidates (best long videos): ${trailers.map((t) => { const o = (t ?? {}) as Record<string, unknown>; return `${str(o.id, 11)} "${str(o.title, 100)}" (${str(String(o.score ?? ""), 6)}x)`; }).join("; ") || "none"}
+
+JSON shape:
+{"diagnosis":["what is weak in the current settings"],
+"description":"new channel description, max 900 characters: first 150 characters say who the channel is for and what they get (with the main keyword), then what videos to expect and how often, then a call to subscribe. No links, no hashtags.",
+"keywords":["10–15 channel keywords, most important first, 1–3 words each"],
+"trailerVideoId":"one id from the trailer candidates or empty string",
+"trailerReason":"why this video works as the channel trailer"}`,
+    };
+  }
   if (mode === "plan") {
     const goal = GOALS[str(body.goal, 20)] ?? GOALS.views;
     const perWeek = Math.min(Math.max(Number(body.videosPerWeek) || 1, 1), 14);
@@ -96,7 +118,7 @@ export async function POST(request: Request) {
   }
 
   const mode = body.mode as Mode;
-  if (!["audit", "improve", "new", "plan"].includes(mode)) return Response.json({ error: "Unknown mode." }, { status: 400 });
+  if (!["audit", "improve", "new", "plan", "channel"].includes(mode)) return Response.json({ error: "Unknown mode." }, { status: 400 });
   const context = str(body.context, 5000);
   if (!context) return Response.json({ error: "Analyze a channel first." }, { status: 400 });
 
