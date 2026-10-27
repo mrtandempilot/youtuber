@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import type { AnalyzedVideo, ChannelStats, VideoIssue } from "@/lib/channel-analysis";
 import type { Channel, ChannelAnalytics } from "@/lib/youtube-api";
+import { ApplyPanel } from "./analyzer/ApplyPanel";
 import { Bars, Card, Chips, fmt, pct, ScoreBadge, Stat, SuggestionView } from "./analyzer/parts";
 
 type Report = {
@@ -245,7 +246,7 @@ function ReportView({ report }: { report: Report }) {
       </div>
 
       {tab === "overview" && <Overview report={report} />}
-      {tab === "videos" && <VideoList videos={videos} context={context} />}
+      {tab === "videos" && <VideoList videos={videos} context={context} mine={report.mine} />}
       {tab === "new" && <NewVideo context={context} hasShorts={stats.format.shorts.videos > 0} />}
 
       {!report.mine && (
@@ -475,7 +476,7 @@ function MiniList({ videos }: { videos: AnalyzedVideo[] }) {
   );
 }
 
-function VideoList({ videos, context }: { videos: AnalyzedVideo[]; context: string }) {
+function VideoList({ videos, context, mine }: { videos: AnalyzedVideo[]; context: string; mine: boolean }) {
   const [sort, setSort] = useState<"weakest" | "newest" | "best">("weakest");
   const [open, setOpen] = useState<string | null>(null);
 
@@ -524,7 +525,7 @@ function VideoList({ videos, context }: { videos: AnalyzedVideo[]; context: stri
               </div>
               <ScoreBadge score={v.score} />
             </button>
-            {open === v.id && <ImprovePanel video={v} context={context} />}
+            {open === v.id && <ImprovePanel video={v} context={context} mine={mine} />}
           </li>
         ))}
       </ul>
@@ -532,10 +533,11 @@ function VideoList({ videos, context }: { videos: AnalyzedVideo[]; context: stri
   );
 }
 
-function ImprovePanel({ video, context }: { video: AnalyzedVideo; context: string }) {
+function ImprovePanel({ video, context, mine }: { video: AnalyzedVideo; context: string; mine: boolean }) {
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTags, setShowTags] = useState(video.tags);
 
   async function run() {
     setLoading(true);
@@ -560,7 +562,7 @@ function ImprovePanel({ video, context }: { video: AnalyzedVideo; context: strin
       {video.issues.length > 0 && <Chips tone="muted" items={video.issues.map((i) => ISSUE_LABELS[i])} />}
       <div className="text-sm">
         <p className="mb-1 font-semibold">Current tags</p>
-        <p className="text-muted">{video.tags.length ? video.tags.join(", ") : "None"}</p>
+        <p className="text-muted">{showTags.length ? showTags.join(", ") : "None"}</p>
       </div>
       {!result && (
         <button
@@ -573,6 +575,7 @@ function ImprovePanel({ video, context }: { video: AnalyzedVideo; context: strin
         </button>
       )}
       {error && <p className="text-sm text-accent">{error}</p>}
+      {result && <ApplyPanel videoId={video.id} result={result} mine={mine} onApplied={(m) => setShowTags(m.tags)} />}
       {result && <SuggestionView result={result} />}
     </div>
   );

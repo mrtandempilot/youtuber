@@ -8,11 +8,13 @@ import { absoluteUrl } from "@/lib/site";
 // ?next=/start brings them back to the onboarding wizard afterwards.
 export async function GET(request: Request) {
   await connection(); // must run per request (reads/sets cookies), never prerendered
-  const next = safeNext(new URL(request.url).searchParams.get("next"));
+  const params = new URL(request.url).searchParams;
+  const next = safeNext(params.get("next"));
+  const write = params.get("write") === "1";
   if (!isGoogleConfigured()) {
     return NextResponse.redirect(absoluteUrl(`${next}?error=not_configured`));
   }
   const state = randomBytes(16).toString("hex");
   await setOAuthState(`${state}|${next}`);
-  return NextResponse.redirect(buildAuthUrl(state));
+  return NextResponse.redirect(buildAuthUrl(state, { write }));
 }

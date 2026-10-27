@@ -40,6 +40,7 @@ export async function GET(request: Request) {
     }
 
     await writeSession({
+      scopes: granted,
       profileId,
       email: identity?.email ?? null,
       accessToken: t.access_token,

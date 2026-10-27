@@ -305,3 +305,80 @@ export async function getChannelAnalytics(accessToken: string, periodDays = 90):
     topSearchTerms: rowsToObjects(search).map((o) => ({ term: String(o.insightTrafficSourceDetail), views: Number(o.views) })),
   };
 }
+
+// ---------- Editing a video (connected owner with write permission) ----------
+
+type VideoSnippet = {
+  title: string;
+  description?: string;
+  tags?: string[];
+  categoryId: string;
+  channelId: string;
+  defaultLanguage?: string;
+  defaultAudioLanguage?: string;
+};
+
+export type VideoMetadata = { title: string; description: string; tags: string[] };
+
+export async function getVideoSnippet(videoId: string, accessToken: string): Promise<VideoSnippet> {
+  const data = await yt<{ items?: { snippet: VideoSnippet }[] }>(DATA, "videos", { part: "snippet", id: videoId }, { accessToken });
+  const s = data.items?.[0]?.snippet;
+  if (!s) throw new YtError("Video not found.", 404, "not_found");
+  return s;
+}
+
+// Replaces title/description/tags while keeping every other snippet field intact
+// (videos.update clears snippet fields that aren't sent). Costs 50 quota units.
+export async function updateVideoSnippet(videoId: string, current: VideoSnippet, next: VideoMetadata, accessToken: string) {
+  const snippet: Record<string, unknown> = {
+    title: next.title,
+    description: next.description,
+    tags: next.tags,
+    categoryId: current.categoryId,
+  };
+  if (current.defaultLanguage) snippet.defaultLanguage = current.defaultLanguage;
+  if (current.defaultAudioLanguage) snippet.defaultAudioLanguage = current.defaultAudioLanguage;
+
+  const res = await fetch(`${DATA}/videos?part=snippet`, {
+    method: "PUT",
+    headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ id: videoId, snippet }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; errors?: { reason?: string }[] } };
+    const reason = body.error?.errors?.[0]?.reason ?? "";
+    if (res.status === 401) throw new YtError("Your Google session expired. Please reconnect.", 401, "unauthorized");
+    if (res.status === 403 && /insufficient|scope|permission/i.test(`${reason} ${body.error?.message}`))
+      throw new YtError("Permission to edit videos is needed.", 403, "needs_write");
+    if (reason === "quotaExceeded") throw new YtError("Daily YouTube API quota reached. Please try again tomorrow.", 429, "quota");
+    throw new YtError(body.error?.message ?? `YouTube update failed (${res.status})`, res.status >= 500 ? 502 : 400);
+  }
+}
+
+// YouTube limits: title ≤ 100 chars, description ≤ 5000 bytes, tags ≤ 500 chars total
+// (multi-word tags count their surrounding quotes). Angle brackets are rejected.
+const noAngles = (s: string) => s.replace(/[<>]/g, "");
+
+export function sanitizeMetadata(input: { title: string; description: string; tags: string[]; hashtags?: string[] }): VideoMetadata {
+  const title = noAngles(input.title).replace(/\s+/g, " ").trim().slice(0, 100);
+
+  let description = noAngles(input.description).trim();
+  const missing = (input.hashtags ?? [])
+    .map((h) => `#${h.replace(/^#+/, "").replace(/\s+/g, "")}`)
+    .filter((h) => h.length > 1 && !description.toLowerCase().includes(h.toLowerCase()));
+  if (missing.length) description = `${description}\n\n${missing.join(" ")}`.trim();
+  while (Buffer.byteLength(description, "utf8") > 5000) description = description.slice(0, -50);
+
+  const tags: string[] = [];
+  let used = 0;
+  for (const raw of input.tags) {
+    const tag = noAngles(raw).replace(/^#/, "").replace(/,/g, " ").replace(/\s+/g, " ").trim();
+    if (!tag || tag.length > 100 || tags.some((t) => t.toLowerCase() === tag.toLowerCase())) continue;
+    const cost = tag.length + (tag.includes(" ") ? 2 : 0) + (tags.length ? 1 : 0);
+    if (used + cost > 500) continue;
+    tags.push(tag);
+    used += cost;
+  }
+  return { title, description, tags };
+}

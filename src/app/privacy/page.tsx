@@ -33,7 +33,13 @@ export default function Page() {
         <li>your YouTube Analytics reports (yt-analytics.readonly) such as watch time, traffic sources and search terms.</li>
       </ul>
       <p>
-        We never upload, edit or delete anything on your channel. We store your profile, your channel&apos;s public
+        Optionally, when you click “Apply to YouTube” for the first time, we ask for permission to edit your videos
+        (youtube.force-ssl). We use it only to update the title, description and tags of the specific video you choose,
+        after you confirm, and we show you the previous version so you can undo it. We never delete videos, comments,
+        ratings or captions, and we never change anything without your click.
+      </p>
+      <p>
+        We never upload or delete anything on your channel. We store your profile, your channel&apos;s public
         statistics, daily progress snapshots and the growth plans you create, so you can see them on any device. Your
         Google refresh token is stored encrypted so we can update your reports; it is never shared.
       </p>

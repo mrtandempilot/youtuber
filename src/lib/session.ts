@@ -12,6 +12,7 @@ export type Session = {
   channelTitle: string | null;
   channelThumb: string | null;
   profileId?: string | null; // Supabase profiles.id (absent when the DB isn't configured)
+  scopes?: string[]; // OAuth scopes the creator granted (write access is optional, asked on first "Apply")
   email?: string | null;
 };
 

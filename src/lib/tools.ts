@@ -56,7 +56,7 @@ export const tools: Tool[] = [
       },
       {
         q: "Is connecting my YouTube channel safe?",
-        a: "The connection uses Google's official sign-in with read-only permissions. The tool can read your channel data and analytics but cannot upload, edit or delete anything. You can disconnect at any time, which also revokes access in your Google account.",
+        a: "The connection uses Google's official sign-in with read-only permissions. If you want suggestions applied for you, the tool asks for edit permission the first time you click “Apply to YouTube” — and it only ever changes the title, description and tags of the video you pick, after you confirm, with one-click undo. You can disconnect at any time, which also revokes access in your Google account.",
       },
       {
         q: "What extra data do I get by connecting my channel?",

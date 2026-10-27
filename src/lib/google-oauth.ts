@@ -11,10 +11,18 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/yt-analytics.readonly",
 ];
 
+// Optional: lets creators apply AI suggestions (title, description, tags) straight to their videos.
+// Requested only when they first click "Apply to YouTube" (incremental authorization).
+export const WRITE_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl";
+
+export function canWrite(scopes: string[] | undefined) {
+  return Boolean(scopes?.includes(WRITE_SCOPE));
+}
+
 export const REDIRECT_PATH = "/api/auth/google/callback";
 
 // Pages allowed as the post-login destination (prevents open redirects).
-const NEXT_PAGES = ["/start", "/youtube-channel-analyzer"] as const;
+const NEXT_PAGES = ["/start", "/youtube-channel-analyzer", "/auth/done"] as const;
 export function safeNext(next: string | null | undefined): string {
   return NEXT_PAGES.find((p) => p === next) ?? "/youtube-channel-analyzer";
 }
@@ -30,13 +38,13 @@ export function isGoogleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.SESSION_SECRET);
 }
 
-export function buildAuthUrl(state: string) {
+export function buildAuthUrl(state: string, opts: { write?: boolean } = {}) {
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.search = new URLSearchParams({
     client_id: creds().id,
     redirect_uri: absoluteUrl(REDIRECT_PATH),
     response_type: "code",
-    scope: GOOGLE_SCOPES.join(" "),
+    scope: [...GOOGLE_SCOPES, ...(opts.write ? [WRITE_SCOPE] : [])].join(" "),
     access_type: "offline", // get a refresh token
     include_granted_scopes: "true",
     prompt: "consent",
