@@ -484,3 +484,150 @@ export async function updateChannelSettings(channelId: string, raw: BrandingSett
     throw new YtError(body.error?.message ?? `Channel update failed (${res.status})`, res.status >= 500 ? 502 : 400);
   }
 }
+
+// ---------- Growth dashboard (connected owner) ----------
+
+export type DayPoint = { day: string; views: number; minutes: number; subsGained: number; subsLost: number };
+
+export type Totals = { views: number; watchHours: number; netSubs: number; avgViewDurationSec: number };
+
+export type Dashboard = {
+  days: number;
+  range: { start: string; end: string };
+  series: DayPoint[]; // current period, one point per day
+  current: Totals;
+  previous: Totals; // the same number of days right before
+  topVideos: { id: string; title: string; thumbnail: string | null; views: number; watchHours: number; subsGained: number }[];
+  trafficSources: { source: string; views: number }[];
+  countries: { country: string; views: number }[];
+  devices: { device: string; views: number }[];
+};
+
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
+function totals(points: DayPoint[]): Totals {
+  const views = points.reduce((a, p) => a + p.views, 0);
+  const minutes = points.reduce((a, p) => a + p.minutes, 0);
+  return {
+    views,
+    watchHours: Math.round((minutes / 60) * 10) / 10,
+    netSubs: points.reduce((a, p) => a + p.subsGained - p.subsLost, 0),
+    avgViewDurationSec: views ? Math.round((minutes * 60) / views) : 0,
+  };
+}
+
+// Fills days YouTube didn't report (no views) with zeros so charts don't skip dates.
+export function fillDays(rows: DayPoint[], start: string, end: string): DayPoint[] {
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+  const out: DayPoint[] = [];
+  for (let d = new Date(`${start}T00:00:00Z`); isoDay(d) <= end; d = new Date(d.getTime() + 86400_000)) {
+    const key = isoDay(d);
+    out.push(byDay.get(key) ?? { day: key, views: 0, minutes: 0, subsGained: 0, subsLost: 0 });
+  }
+  return out;
+}
+
+export async function getDashboard(accessToken: string, days: number): Promise<Dashboard> {
+  const auth = { accessToken };
+  // YouTube Analytics lags ~2 days; end yesterday so the last points aren't artificially low.
+  const end = new Date(Date.now() - 86400_000);
+  const start = new Date(end.getTime() - (days - 1) * 86400_000);
+  const prevStart = new Date(start.getTime() - days * 86400_000);
+  const base = { ids: "channel==MINE", startDate: isoDay(start), endDate: isoDay(end) };
+
+  const [daily, videos, traffic, countries, devices] = await Promise.all([
+    yt<Report>(
+      ANALYTICS,
+      "reports",
+      {
+        ids: "channel==MINE",
+        startDate: isoDay(prevStart),
+        endDate: isoDay(end),
+        metrics: "views,estimatedMinutesWatched,subscribersGained,subscribersLost",
+        dimensions: "day",
+        sort: "day",
+      },
+      auth,
+    ),
+    yt<Report>(
+      ANALYTICS,
+      "reports",
+      { ...base, metrics: "views,estimatedMinutesWatched,subscribersGained", dimensions: "video", sort: "-views", maxResults: "10" },
+      auth,
+    ),
+    yt<Report>(ANALYTICS, "reports", { ...base, metrics: "views", dimensions: "insightTrafficSourceType", sort: "-views" }, auth),
+    yt<Report>(ANALYTICS, "reports", { ...base, metrics: "views", dimensions: "country", sort: "-views", maxResults: "8" }, auth).catch(
+      () => ({}) as Report,
+    ),
+    yt<Report>(ANALYTICS, "reports", { ...base, metrics: "views", dimensions: "deviceType", sort: "-views" }, auth).catch(
+      () => ({}) as Report,
+    ),
+  ]);
+
+  const points: DayPoint[] = rowsToObjects(daily).map((o) => ({
+    day: String(o.day),
+    views: Number(o.views ?? 0),
+    minutes: Number(o.estimatedMinutesWatched ?? 0),
+    subsGained: Number(o.subscribersGained ?? 0),
+    subsLost: Number(o.subscribersLost ?? 0),
+  }));
+  const series = fillDays(points.filter((p) => p.day >= base.startDate), base.startDate, base.endDate);
+  const prevSeries = fillDays(
+    points.filter((p) => p.day < base.startDate),
+    isoDay(prevStart),
+    isoDay(new Date(start.getTime() - 86400_000)),
+  );
+
+  const videoRows = rowsToObjects(videos);
+  const ids = videoRows.map((o) => String(o.video));
+  const meta = new Map<string, { title: string; thumbnail: string | null }>();
+  if (ids.length) {
+    const v = await yt<VideosResponse>(DATA, "videos", { part: "snippet", id: ids.join(",") }, auth);
+    for (const item of v.items ?? []) {
+      const t = item.snippet.thumbnails ?? {};
+      meta.set(item.id, { title: item.snippet.title, thumbnail: t.medium?.url ?? t.default?.url ?? null });
+    }
+  }
+
+  return {
+    days,
+    range: { start: base.startDate, end: base.endDate },
+    series,
+    current: totals(series),
+    previous: totals(prevSeries),
+    topVideos: videoRows.map((o) => ({
+      id: String(o.video),
+      title: meta.get(String(o.video))?.title ?? String(o.video),
+      thumbnail: meta.get(String(o.video))?.thumbnail ?? null,
+      views: Number(o.views ?? 0),
+      watchHours: Math.round((Number(o.estimatedMinutesWatched ?? 0) / 60) * 10) / 10,
+      subsGained: Number(o.subscribersGained ?? 0),
+    })),
+    trafficSources: rowsToObjects(traffic).map((o) => ({ source: String(o.insightTrafficSourceType), views: Number(o.views) })),
+    countries: rowsToObjects(countries).map((o) => ({ country: String(o.country), views: Number(o.views) })),
+    devices: rowsToObjects(devices).map((o) => ({ device: String(o.deviceType), views: Number(o.views) })),
+  };
+}
+
+// Average daily views of one video in the N days before and after a date (for "impact of changes").
+export async function videoImpact(accessToken: string, videoId: string, changedAt: string, window = 7) {
+  const changed = new Date(changedAt);
+  const changeDay = isoDay(changed);
+  const before = isoDay(new Date(changed.getTime() - window * 86400_000));
+  const lastAvailable = isoDay(new Date(Date.now() - 2 * 86400_000));
+  const afterEndCandidate = isoDay(new Date(changed.getTime() + window * 86400_000));
+  const afterEnd = afterEndCandidate < lastAvailable ? afterEndCandidate : lastAvailable;
+
+  const r = await yt<Report>(
+    ANALYTICS,
+    "reports",
+    { ids: "channel==MINE", startDate: before, endDate: afterEnd < changeDay ? changeDay : afterEnd, metrics: "views", dimensions: "day", filters: `video==${videoId}` },
+    { accessToken },
+  );
+  const rows = rowsToObjects(r).map((o) => ({ day: String(o.day), views: Number(o.views ?? 0) }));
+  const beforeDays = fillDays(rows.map((x) => ({ ...x, minutes: 0, subsGained: 0, subsLost: 0 })), before, isoDay(new Date(changed.getTime() - 86400_000)));
+  const afterStart = isoDay(new Date(changed.getTime() + 86400_000));
+  const afterDays = afterEnd >= afterStart ? fillDays(rows.map((x) => ({ ...x, minutes: 0, subsGained: 0, subsLost: 0 })), afterStart, afterEnd) : [];
+  const avg = (xs: { views: number }[]) => (xs.length ? Math.round((xs.reduce((a, x) => a + x.views, 0) / xs.length) * 10) / 10 : null);
+  return { beforePerDay: avg(beforeDays), afterPerDay: afterDays.length >= 3 ? avg(afterDays) : null, afterDaysCounted: afterDays.length };
+}

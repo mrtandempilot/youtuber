@@ -120,7 +120,7 @@ export function ChannelSettingsPanel({
   async function undo() {
     if (!previous) return;
     setStage("working");
-    const r = await postJson("/api/youtube/channel-settings", previous);
+    const r = await postJson("/api/youtube/channel-settings", { ...previous, undo: true });
     if (!r.ok) {
       setStage("done");
       return setError(r.data.error ?? "Undo failed.");

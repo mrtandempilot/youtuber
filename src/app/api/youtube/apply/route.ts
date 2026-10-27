@@ -1,3 +1,4 @@
+import { logChange } from "@/lib/db";
 import { canWrite, getFreshSession } from "@/lib/google-oauth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { getVideoSnippet, sanitizeMetadata, updateVideoSnippet, YtError } from "@/lib/youtube-api";
@@ -44,6 +45,20 @@ export async function POST(request: Request) {
     if (!next.title) return Response.json({ error: "Title can't be empty." }, { status: 400 });
 
     await updateVideoSnippet(videoId, current, next, session.accessToken);
+    if (session.profileId && session.channelId) {
+      const fields = (["title", "description", "tags"] as const).filter(
+        (f) => JSON.stringify(next[f]) !== JSON.stringify(previous[f]),
+      );
+      await logChange({
+        profile_id: session.profileId,
+        channel_id: session.channelId,
+        video_id: videoId,
+        kind: body.undo === true ? "undo" : "video",
+        fields: [...fields],
+        previous,
+        applied: next,
+      });
+    }
     return Response.json({ ok: true, applied: next, previous });
   } catch (err) {
     if (err instanceof YtError) return Response.json({ error: err.message, code: err.code }, { status: err.status });

@@ -165,3 +165,44 @@ export async function deleteAccount(profileId: string) {
   if (!d) return;
   check(await d.from("profiles").delete().eq("id", profileId), "delete account");
 }
+
+// ---------- Change log (what CreatorKit applied to YouTube) ----------
+
+export type ChangeLogEntry = {
+  id: string;
+  channel_id: string;
+  video_id: string | null;
+  kind: "video" | "channel" | "undo";
+  fields: string[];
+  previous: Record<string, unknown> | null;
+  applied: Record<string, unknown> | null;
+  created_at: string;
+};
+
+// Never throws: logging must not break the apply itself (e.g. table not created yet).
+export async function logChange(entry: Omit<ChangeLogEntry, "id" | "created_at"> & { profile_id: string }) {
+  const d = db();
+  if (!d) return;
+  try {
+    const { error } = await d.from("change_log").insert(entry);
+    if (error) console.warn("change_log insert skipped:", error.message);
+  } catch (err) {
+    console.warn("change_log insert skipped:", err);
+  }
+}
+
+export async function recentChanges(profileId: string, limit = 10): Promise<ChangeLogEntry[]> {
+  const d = db();
+  if (!d) return [];
+  const { data, error } = await d
+    .from("change_log")
+    .select("id, channel_id, video_id, kind, fields, previous, applied, created_at")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.warn("change_log read skipped:", error.message);
+    return [];
+  }
+  return (data ?? []) as ChangeLogEntry[];
+}

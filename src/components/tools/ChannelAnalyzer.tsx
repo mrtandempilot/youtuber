@@ -138,6 +138,9 @@ export function ChannelAnalyzer() {
               >
                 {loading ? "Analyzing…" : "Analyze my channel"}
               </button>
+              <a href="/dashboard" className="rounded-xl border border-line px-3 py-2 text-sm hover:border-ink">
+                Dashboard
+              </a>
               <button type="button" onClick={disconnect} className="rounded-xl border border-line px-3 py-2 text-sm hover:border-ink">
                 Disconnect
               </button>

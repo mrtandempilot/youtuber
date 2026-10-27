@@ -122,7 +122,7 @@ export function ApplyPanel({
   async function undo() {
     if (!previous) return;
     setStage("working");
-    const r = await apply({ videoId, ...previous, hashtags: [] });
+    const r = await apply({ videoId, ...previous, hashtags: [], undo: true });
     if (!r.ok) {
       setStage("done");
       setError(r.data.error ?? "Undo failed.");

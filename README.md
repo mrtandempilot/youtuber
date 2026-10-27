@@ -72,6 +72,15 @@ Supabase ayarlanmazsa site çalışmaya devam eder, sadece hesap ve kayıt özel
 
 Veri silme: `/privacy` sayfasındaki "Delete my data" butonu profili ve ona bağlı her şeyi siler, Google erişimini de iptal eder. Bu, Google doğrulaması için zorunlu.
 
+## Growth dashboard (`/dashboard`)
+
+Kanalını bağlayan creator için büyüme sayfası (YouTube Analytics'ten canlı veri):
+- 7 / 28 / 90 gün / 12 ay; her metrik bir önceki aynı uzunluktaki dönemle karşılaştırılır
+- İzlenme (çizgi), net abone (bar, 12 ayda haftalık), trafik kaynakları, ülkeler, cihazlar, en iyi videolar
+- **Değişikliklerin etkisi:** "Apply to YouTube" ile yapılan her değişiklik `change_log` tablosuna yazılır; videonun değişiklikten önceki ve sonraki 7 günlük ortalama günlük izlenmesi karşılaştırılır (en az 3 gün veri gerekir)
+
+`change_log` tablosu için `supabase/migrations/20261027150000_change_log.sql` dosyasını Supabase SQL Editor'de çalıştır. Tablo yoksa dashboard yine çalışır, sadece bu bölüm boş kalır.
+
 ## Yeni araç ekleme
 
 1. `src/lib/tools.ts` içine kayıt ekle (`status: "live"`, SEO metinleri, how-to, FAQ).

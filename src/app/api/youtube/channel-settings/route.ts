@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { logChange } from "@/lib/db";
 import { canWrite, getFreshSession } from "@/lib/google-oauth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
@@ -65,6 +66,20 @@ export async function POST(request: Request) {
     };
     const next = sanitizeChannelSettings(merged);
     await updateChannelSettings(channelId, raw, next, session.accessToken);
+    if (session.profileId) {
+      const fields = (Object.keys(next) as (keyof ChannelSettings)[]).filter(
+        (f) => JSON.stringify(next[f]) !== JSON.stringify(previous[f]),
+      );
+      await logChange({
+        profile_id: session.profileId,
+        channel_id: channelId,
+        video_id: null,
+        kind: body.undo === true ? "undo" : "channel",
+        fields,
+        previous,
+        applied: next,
+      });
+    }
     return Response.json({ ok: true, applied: next, previous });
   } catch (err) {
     return errorResponse(err);

@@ -28,12 +28,17 @@ export function Header() {
             </Link>
           ))}
         </nav>
+        <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="text-sm font-medium text-muted hover:text-ink">
+          Dashboard
+        </Link>
         <Link
           href="/start"
           className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink hover:opacity-90"
         >
           Get your plan
         </Link>
+        </div>
       </div>
     </header>
   );

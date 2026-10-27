@@ -9,6 +9,7 @@
   --accent: #ff4a1c;
   --accent-ink: #ffffff;
   --accent-soft: #fff0ea;
+  --chart: #ff4a1c; /* validated: light surface */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +22,7 @@
     --accent: #ff6a40;
     --accent-ink: #12100e;
     --accent-soft: #2a1a13;
+    --chart: #f0582c; /* validated: dark surface (#ff6a40 is too light for charts) */
   }
 }
 
