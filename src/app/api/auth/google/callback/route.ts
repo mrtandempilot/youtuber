@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { exchangeCode, safeNext } from "@/lib/google-oauth";
+import { upsertAccount } from "@/lib/db";
+import { exchangeCode, identityFromIdToken, safeNext } from "@/lib/google-oauth";
 import { takeOAuthState, writeSession } from "@/lib/session";
 import { absoluteUrl } from "@/lib/site";
 import { getChannel, YtError } from "@/lib/youtube-api";
@@ -27,7 +28,20 @@ export async function GET(request: Request) {
       throw err;
     }
 
+    // Create/update the account in Supabase. A DB problem must not block sign-in.
+    const identity = identityFromIdToken(t.id_token);
+    let profileId: string | null = null;
+    if (identity) {
+      try {
+        profileId = await upsertAccount(identity, t.refresh_token ?? null, channel);
+      } catch (err) {
+        console.error("account upsert failed", err);
+      }
+    }
+
     await writeSession({
+      profileId,
+      email: identity?.email ?? null,
       accessToken: t.access_token,
       refreshToken: t.refresh_token ?? null,
       expiresAt: Date.now() + t.expires_in * 1000,

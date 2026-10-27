@@ -11,6 +11,8 @@ export async function GET() {
     {
       googleConfigured: configured,
       connected: Boolean(s),
+      account: Boolean(s?.profileId), // signed in with a saved account (Supabase)
+      email: s?.email ?? null,
       channel: s ? { id: s.channelId, title: s.channelTitle, thumbnail: s.channelThumb } : null,
     },
     { headers: { "Cache-Control": "no-store" } },

@@ -1,4 +1,5 @@
 import { analyzeChannel, channelContext } from "@/lib/channel-analysis";
+import { saveSnapshot, upsertChannel } from "@/lib/db";
 import { getFreshSession } from "@/lib/google-oauth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
@@ -32,11 +33,13 @@ export async function POST(request: Request) {
   try {
     let auth: YtAuth;
     let mine = false;
+    let profileId: string | null = null;
     if (body.mine === true) {
       const session = await getFreshSession();
       if (!session) return Response.json({ error: "Please connect your YouTube channel again.", code: "unauthorized" }, { status: 401 });
       auth = { accessToken: session.accessToken };
       mine = true;
+      profileId = session.profileId ?? null;
     } else {
       const ref = typeof body.channel === "string" ? parseChannelInput(body.channel) : null;
       if (!ref) return Response.json({ error: "Enter a channel link, @handle or channel ID." }, { status: 400 });
@@ -52,7 +55,18 @@ export async function POST(request: Request) {
     } catch (err) {
       console.warn("analytics unavailable", err); // analytics scope may be missing; public data still works
     }
-    return Response.json(await build(channel, auth, analytics, mine));
+    const result = await build(channel, auth, analytics, mine);
+
+    // Keep the account's channel info and daily history up to date (never blocks the response).
+    if (profileId) {
+      try {
+        await upsertChannel(profileId, channel);
+        await saveSnapshot(channel, result.stats, analytics);
+      } catch (err) {
+        console.error("saving snapshot failed", err);
+      }
+    }
+    return Response.json(result);
   } catch (err) {
     if (err instanceof YtError) {
       const msg = err.code === "not_configured" ? "Channel analysis isn't configured yet (missing YouTube API key)." : err.message;

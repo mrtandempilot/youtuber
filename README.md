@@ -48,7 +48,29 @@ Müşterinin sisteme giriş akışı. Header'daki ve ana sayfadaki "Get your pla
 2. **Hedefler:** ana hedef (izlenme, abone, monetizasyon, Shorts, arama), konu (kanal anahtar kelimeleriyle otomatik doldurulur), haftada kaç video yapabileceği ve format.
 3. **Plan:** ilerleme animasyonu gösterilirken AI kişisel 4 haftalık planı yazar (`/api/youtube/suggest` içinde `mode: "plan"`). Planda bugün yapılacak 3 iş, haftalık video başlıkları, alışkanlıklar ve monetizasyon ilerlemesi var. Sonunda "Open full report" butonu analyzer'ı otomatik açar.
 
-Plan şimdilik tarayıcıda (localStorage) saklanıyor, müşteri geri döndüğünde planını görüyor. Hesap sistemi ve veritabanı (Supabase) eklenince haftalık e-posta raporu ve plan takibi buna bağlanacak.
+Google ile giriş yapan müşterinin planı Supabase'deki hesabına kaydediliyor, başka cihazdan girince de görünüyor. Link yapıştıran müşterinin planı sadece kendi tarayıcısında kalıyor.
+
+## Supabase (hesaplar, planlar, kanal geçmişi)
+
+Şema dosyası: `supabase/migrations/20261027120000_init.sql`
+
+| Tablo | İçerik |
+|---|---|
+| `profiles` | Google hesabı (sub, e-posta, ad), şifreli refresh token, `plan_tier` (free/pro) |
+| `channels` | Müşterinin YouTube kanalları |
+| `plans` | Wizard'daki cevaplar ve AI planı; kanal başına en son satır aktif plan |
+| `channel_snapshots` | Kanal başına günde bir istatistik kaydı (ilerleme grafiği ve haftalık rapor için) |
+
+Bütün tablolarda RLS açık ve hiç policy yok. Yani public/anon key hiçbir şey okuyamaz, erişim sadece sunucudan `SUPABASE_SECRET_KEY` ile oluyor.
+
+Kurulum:
+1. Supabase → SQL Editor'e migration dosyasının içeriğini yapıştırıp **Run** de.
+2. Project Settings → API (veya API Keys) altından **Project URL** ve bir **Secret key** (`sb_secret_…`) al.
+3. `.env.local` dosyasına ve Vercel'e `SUPABASE_URL` ile `SUPABASE_SECRET_KEY` olarak gir. Secret key'i asla `NEXT_PUBLIC_` ile başlatma.
+
+Supabase ayarlanmazsa site çalışmaya devam eder, sadece hesap ve kayıt özellikleri devre dışı kalır.
+
+Veri silme: `/privacy` sayfasındaki "Delete my data" butonu profili ve ona bağlı her şeyi siler, Google erişimini de iptal eder. Bu, Google doğrulaması için zorunlu.
 
 ## Yeni araç ekleme
 

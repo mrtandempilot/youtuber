@@ -1,8 +1,12 @@
 import { absoluteUrl } from "./site";
 import { readSession, writeSession, type Session } from "./session";
 
-// Read-only scopes: channel/videos data + private analytics. We never post or edit anything.
+// Read-only scopes: identity (account), channel/videos data + private analytics.
+// We never post or edit anything.
 export const GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/yt-analytics.readonly",
 ];
@@ -41,7 +45,31 @@ export function buildAuthUrl(state: string) {
   return url.toString();
 }
 
-type TokenResponse = { access_token: string; expires_in: number; refresh_token?: string; scope?: string };
+type TokenResponse = { access_token: string; expires_in: number; refresh_token?: string; scope?: string; id_token?: string };
+
+// Reads the Google account identity from the id_token. The token comes straight from Google's
+// token endpoint over TLS, so per Google's docs its signature doesn't need re-verifying here.
+export function identityFromIdToken(idToken: string | undefined) {
+  if (!idToken) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(idToken.split(".")[1], "base64url").toString("utf8")) as {
+      sub?: string;
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+      picture?: string;
+    };
+    if (!payload.sub) return null;
+    return {
+      sub: payload.sub,
+      email: payload.email_verified === false ? null : (payload.email ?? null),
+      name: payload.name ?? null,
+      picture: payload.picture ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
 
 async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
   const { id, secret } = creds();

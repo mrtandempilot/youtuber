@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { cookies } from "next/headers";
 
 // Encrypted, httpOnly cookie session holding the creator's Google tokens.
-// No database needed yet; swap for Supabase when accounts and the Pro plan arrive.
+// The account itself (profile, channels, plans, history) lives in Supabase; profileId links them.
 
 export type Session = {
   accessToken: string;
@@ -11,6 +11,8 @@ export type Session = {
   channelId: string | null;
   channelTitle: string | null;
   channelThumb: string | null;
+  profileId?: string | null; // Supabase profiles.id (absent when the DB isn't configured)
+  email?: string | null;
 };
 
 export const SESSION_COOKIE = "ck_session";

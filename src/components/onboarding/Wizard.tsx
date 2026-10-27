@@ -10,7 +10,13 @@ import { fmt, Stat } from "@/components/tools/analyzer/parts";
 // Onboarding wizard: channel → goals → (auto analysis) → personal 4-week plan.
 // Analysis starts in the background as soon as the channel is known, so step 3 feels instant.
 
-type Me = { googleConfigured: boolean; connected: boolean; channel: { id: string; title: string; thumbnail: string | null } | null };
+type Me = {
+  googleConfigured: boolean;
+  connected: boolean;
+  account?: boolean;
+  email?: string | null;
+  channel: { id: string; title: string; thumbnail: string | null } | null;
+};
 type Report = { mine: boolean; channel: Channel; stats: ChannelStats; context: string };
 type Plan = {
   headline?: string;
@@ -20,7 +26,59 @@ type Plan = {
   habits?: string[];
 };
 type Answers = { goal: string; niche: string; videosPerWeek: number; format: "long" | "short" | "mixed" };
-type Saved = { answers: Answers; mine: boolean; channel: Channel; stats: ChannelStats; plan: Plan; createdAt: string };
+type Saved = {
+  answers: Answers;
+  mine: boolean;
+  channel: Channel;
+  stats: ChannelStats;
+  plan: Plan;
+  createdAt: string;
+  inAccount?: boolean; // stored in the creator's account (Supabase), not just this browser
+};
+
+type DbPlan = {
+  goal: string;
+  niche: string | null;
+  videos_per_week: number;
+  format: Answers["format"];
+  plan: Plan;
+  stats: { stats: ChannelStats; channel: Channel } | null;
+  created_at: string;
+};
+
+// Latest plan saved in the creator's account, converted to the wizard's shape.
+async function loadAccountPlan(): Promise<Saved | null> {
+  try {
+    const r = await fetch("/api/plans", { cache: "no-store" }).then((x) => x.json());
+    const p = r.plan as DbPlan | null;
+    if (!p?.stats?.channel || !p.stats.stats) return null;
+    return {
+      answers: { goal: p.goal, niche: p.niche ?? "", videosPerWeek: p.videos_per_week, format: p.format },
+      mine: true,
+      channel: p.stats.channel,
+      stats: p.stats.stats,
+      plan: p.plan,
+      createdAt: p.created_at,
+      inAccount: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Saves a freshly made plan to the account (no-op server-side if not signed in).
+async function saveToAccount(s: Saved): Promise<boolean> {
+  try {
+    const r = await post<{ saved: boolean }>("/api/plans", {
+      ...s.answers,
+      plan: s.plan,
+      stats: { stats: s.stats, channel: s.channel },
+    });
+    return r.saved;
+  } catch {
+    return false;
+  }
+}
 
 const STORAGE_KEY = "ck_onboarding_v1";
 
@@ -86,8 +144,10 @@ export function Wizard() {
 
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((m: Me) => {
+      .then(async (m: Me) => {
         setMe(m);
+        // Signed-in creators get the plan stored in their account (works on any device).
+        const fromAccount = m.account ? await loadAccountPlan() : null;
         if (oauthError) {
           setError(
             oauthError === "no_channel"
@@ -98,11 +158,16 @@ export function Wizard() {
           );
         } else if (justConnected && m.connected) {
           track("Onboarding Connected");
+          if (fromAccount) {
+            setSaved(fromAccount); // returning creator: show their plan
+            return;
+          }
           startAnalysis({ mine: true });
           setStep(1);
           return;
         }
-        if (existing) setSaved(existing);
+        const local = existing && (!m.connected || existing.channel.id === m.channel?.id) ? existing : null;
+        if (fromAccount || local) setSaved(fromAccount ?? local);
       })
       .catch(() => setMe({ googleConfigured: false, connected: false, channel: null }));
     // Runs once on mount.
@@ -308,6 +373,11 @@ export function Wizard() {
           onDone={(s) => {
             save(s);
             setSaved(s);
+            if (s.mine) {
+              void saveToAccount(s).then((ok) => {
+                if (ok) setSaved((cur) => (cur === s ? { ...s, inAccount: true } : cur));
+              });
+            }
             setStep(3);
             track("Onboarding Complete", { goal: answers.goal });
           }}
@@ -442,6 +512,7 @@ function PlanView({ saved }: { saved: Saved }) {
         <div>
           <p className="text-sm text-muted">
             Plan for {channel.title} · Goal: {goal?.label}
+            {saved.inAccount ? " · Saved to your account ✓" : saved.mine ? "" : " · Saved in this browser"}
           </p>
           <h2 className="font-display text-2xl font-bold leading-tight md:text-3xl">{plan.headline ?? "Your 4-week growth plan"}</h2>
         </div>
