@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { JsonLd } from "@/components/JsonLd";
 import { site } from "@/lib/site";
+import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
 // Self-hosted fonts: no request to Google Fonts at build or runtime.
@@ -50,10 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf8f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#12100e" },
-  ],
+  themeColor: "#faf8f5",
 };
 
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
@@ -62,8 +60,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-theme="light"
+      data-accent="orange"
+      suppressHydrationWarning
       className={`${GeistSans.variable} ${GeistMono.variable} ${display.variable} h-full antialiased`}
     >
+      <head>
+        {/* Applies the saved theme before first paint (no flash). */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         <JsonLd
           data={[

@@ -83,7 +83,7 @@ function Delta({ now, before, invert = false }: { now: number; before: number; i
   const up = pct >= 0;
   const good = invert ? !up : up;
   return (
-    <span className={`text-xs font-medium ${good ? "text-emerald-600 dark:text-emerald-400" : "text-accent"}`}>
+    <span className={`text-xs font-medium ${good ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
       {up ? "▲" : "▼"} {Math.abs(pct).toFixed(Math.abs(pct) < 10 ? 1 : 0)}% <span className="font-normal text-muted">vs previous</span>
     </span>
   );
@@ -153,7 +153,7 @@ function ImpactBadge({ impact }: { impact: Change["impact"] }) {
       </span>{" "}
       <span className="text-muted">views/day</span>
       {diff != null && (
-        <span className={`ml-1.5 font-semibold ${good ? "text-emerald-600 dark:text-emerald-400" : "text-accent"}`}>
+        <span className={`ml-1.5 font-semibold ${good ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
           {good ? "+" : ""}
           {Math.round(diff)}%
         </span>

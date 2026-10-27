@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { site } from "@/lib/site";
 import { liveTools } from "@/lib/tools";
+import { ThemePicker } from "@/components/ThemePicker";
 
 export function Logo() {
   return (
@@ -28,16 +29,17 @@ export function Header() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="text-sm font-medium text-muted hover:text-ink">
-          Dashboard
-        </Link>
-        <Link
-          href="/start"
-          className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink hover:opacity-90"
-        >
-          Get your plan
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/dashboard" className="text-sm font-medium text-muted hover:text-ink">
+            Dashboard
+          </Link>
+          <ThemePicker />
+          <Link
+            href="/start"
+            className="whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink hover:opacity-90 sm:px-4"
+          >
+            Get your plan
+          </Link>
         </div>
       </div>
     </header>

@@ -36,7 +36,7 @@ export function Card({ title, subtitle, children, action }: { title: string; sub
 export function ScoreBadge({ score }: { score: number | null }) {
   if (score == null) return <span className="rounded-md border border-line px-1.5 py-0.5 text-xs text-muted">new</span>;
   const cls =
-    score >= 1.5 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : score >= 0.8 ? "bg-line text-ink" : "bg-accent-soft text-accent";
+    score >= 1.5 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : score >= 0.8 ? "bg-line text-ink" : "bg-rose-500/15 text-rose-600 dark:text-rose-400";
   return <span className={`rounded-md px-1.5 py-0.5 font-mono text-xs font-semibold ${cls}`}>{score.toFixed(1)}×</span>;
 }
 
