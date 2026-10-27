@@ -54,8 +54,8 @@ export default function Home() {
           Small tools that save creators <span className="text-accent">hours.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-          Download thumbnails, generate hashtags, and soon transcripts, subtitles and titles — free
-          AI tools built for YouTube, TikTok and Instagram creators.
+          Analyze your channel, fix old videos, plan SEO for new ones, download thumbnails and generate
+          hashtags — free AI tools built for YouTube, TikTok and Instagram creators.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           {liveTools.map((t, i) => (

@@ -24,6 +24,60 @@ export type Tool = {
 
 export const tools: Tool[] = [
   {
+    slug: "youtube-channel-analyzer",
+    name: "YouTube Channel Analyzer",
+    status: "live",
+    category: "YouTube",
+    platforms: ["YouTube", "YouTube Shorts"],
+    cardDescription: "Find what works on your channel and get AI titles, tags and hashtags for every video.",
+    metaTitle: "Free YouTube Channel Analyzer – AI Audit, Tags & SEO Ideas",
+    metaDescription:
+      "Analyze any YouTube channel for free: best and worst videos, winning tags, best upload days, Shorts vs long. Connect your channel for AI fixes for old videos and SEO for new ones.",
+    h1: "YouTube Channel Analyzer",
+    intro:
+      "Paste any channel link or connect your own YouTube account to see which videos, tags, hashtags, title lengths and upload days actually drive views. The AI then rewrites titles, descriptions and tags for weak videos and plans SEO for your next upload — based on your channel's real data.",
+    keywords: [
+      "youtube channel analyzer",
+      "youtube channel audit",
+      "youtube seo tool",
+      "youtube tag analyzer",
+      "youtube analytics tool",
+      "youtube video optimizer",
+    ],
+    howTo: [
+      "Connect your channel with Google (read-only) for private analytics, or paste any public channel link or @handle.",
+      "Review the report: performance score per video, tags and hashtags linked to your best videos, best upload days and Shorts vs long videos.",
+      "Click “Improve with AI” on any old video for better titles, description, tags and hashtags, or describe your next video to get a full SEO package.",
+    ],
+    faqs: [
+      {
+        q: "How is the performance score calculated?",
+        a: "Each video's views per day since publishing is divided by the channel's median views per day for the same format (Shorts and long videos are scored separately). 1.0× is a typical video for the channel, 2.0× is twice as good. Videos younger than 3 days are left out until their numbers settle.",
+      },
+      {
+        q: "Is connecting my YouTube channel safe?",
+        a: "The connection uses Google's official sign-in with read-only permissions. The tool can read your channel data and analytics but cannot upload, edit or delete anything. You can disconnect at any time, which also revokes access in your Google account.",
+      },
+      {
+        q: "What extra data do I get by connecting my channel?",
+        a: "Private YouTube Analytics for the last 90 days: watch time, average view duration and percentage, subscribers gained per video, traffic sources and the actual YouTube search terms viewers used to find you. The AI uses those search terms as keyword ideas.",
+      },
+      {
+        q: "Can I analyze a competitor's channel?",
+        a: "Yes. Paste any public channel link or @handle to see its public stats: views, tags, hashtags, upload patterns and top videos. Private analytics are only available for your own connected channel.",
+      },
+      {
+        q: "How many videos are analyzed?",
+        a: "The 50 most recent uploads, which reflects how the channel performs today rather than years ago.",
+      },
+      {
+        q: "Do tags still matter on YouTube?",
+        a: "Tags play a small role compared with titles, descriptions and thumbnails, but they help with misspellings and related searches. That's why the analyzer focuses on titles and descriptions first and treats tags as a supporting signal.",
+      },
+    ],
+    updated: "2026-10-27",
+  },
+  {
     slug: "youtube-thumbnail-downloader",
     name: "YouTube Thumbnail Downloader",
     status: "live",

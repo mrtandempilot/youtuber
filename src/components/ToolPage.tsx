@@ -35,7 +35,7 @@ function formatDate(iso: string) {
 
 // Shared layout for every tool page: H1 + intro, the interactive tool,
 // how-to, FAQ, related tools and all structured data.
-export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }) {
+export function ToolPage({ tool, children, wide = false }: { tool: Tool; children: ReactNode; wide?: boolean }) {
   const url = absoluteUrl(`/${tool.slug}`);
   const related = liveTools.filter((t) => t.slug !== tool.slug);
 
@@ -78,7 +78,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }
   ];
 
   return (
-    <article className="mx-auto max-w-3xl px-4 pt-8">
+    <article className={`mx-auto px-4 pt-8 ${wide ? "max-w-5xl" : "max-w-3xl"}`}>
       <JsonLd data={jsonLd} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted">
@@ -104,7 +104,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }
         {children}
       </section>
 
-      <section className="mt-14">
+      <section className="mx-auto mt-14 max-w-3xl">
         <h2 className="font-display text-2xl font-bold">How to use the {tool.name}</h2>
         <ol className="mt-5 space-y-4">
           {tool.howTo.map((step, i) => (
@@ -118,7 +118,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }
         </ol>
       </section>
 
-      <section className="mt-14">
+      <section className="mx-auto mt-14 max-w-3xl">
         <h2 className="font-display text-2xl font-bold">Frequently asked questions</h2>
         <div className="mt-5 divide-y divide-line rounded-2xl border border-line bg-surface">
           {tool.faqs.map((f) => (
@@ -134,7 +134,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }
       </section>
 
       {related.length > 0 && (
-        <section className="mt-14">
+        <section className="mx-auto mt-14 max-w-3xl">
           <h2 className="font-display text-2xl font-bold">More free creator tools</h2>
           <ul className="mt-5 grid gap-3 sm:grid-cols-2">
             {related.map((t) => (
@@ -152,7 +152,7 @@ export function ToolPage({ tool, children }: { tool: Tool; children: ReactNode }
         </section>
       )}
 
-      <p className="mt-10 text-sm text-muted">
+      <p className="mx-auto mt-10 max-w-3xl text-sm text-muted">
         Last updated: <time dateTime={tool.updated}>{formatDate(tool.updated)}</time>
       </p>
     </article>

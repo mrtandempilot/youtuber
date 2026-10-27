@@ -1,0 +1,44 @@
+import { NextResponse } from "next/server";
+import { exchangeCode } from "@/lib/google-oauth";
+import { takeOAuthState, writeSession } from "@/lib/session";
+import { absoluteUrl } from "@/lib/site";
+import { getChannel, YtError } from "@/lib/youtube-api";
+
+const back = (q: string) => NextResponse.redirect(absoluteUrl(`/youtube-channel-analyzer${q}`));
+
+// Google redirects here after consent. Exchanges the code, loads the creator's channel, stores the session.
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+  const expected = await takeOAuthState();
+
+  if (params.get("error")) return back("?error=denied");
+  const code = params.get("code");
+  if (!code || !expected || params.get("state") !== expected) return back("?error=state");
+
+  try {
+    const t = await exchangeCode(code);
+    const granted = (t.scope ?? "").split(" ");
+    if (!granted.some((s) => s.endsWith("youtube.readonly"))) return back("?error=scope");
+
+    let channel = null;
+    try {
+      channel = await getChannel("mine", { accessToken: t.access_token });
+    } catch (err) {
+      if (err instanceof YtError && err.code === "not_found") return back("?error=no_channel");
+      throw err;
+    }
+
+    await writeSession({
+      accessToken: t.access_token,
+      refreshToken: t.refresh_token ?? null,
+      expiresAt: Date.now() + t.expires_in * 1000,
+      channelId: channel.id,
+      channelTitle: channel.title,
+      channelThumb: channel.thumbnail,
+    });
+    return back("?connected=1#analysis");
+  } catch (err) {
+    console.error("google oauth callback failed", err);
+    return back("?error=oauth");
+  }
+}

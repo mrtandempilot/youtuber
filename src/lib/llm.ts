@@ -32,3 +32,12 @@ export async function complete(opts: { system: string; prompt: string; maxTokens
     .map((b) => b.text ?? "")
     .join("");
 }
+
+// Asks for JSON and parses the first {...} object in the reply.
+export async function completeJson<T>(opts: { system: string; prompt: string; maxTokens?: number }): Promise<T> {
+  const text = await complete({ ...opts, system: `${opts.system}\nReturn ONLY valid JSON. No markdown, no commentary.` });
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("LLM returned no JSON");
+  return JSON.parse(text.slice(start, end + 1)) as T;
+}
