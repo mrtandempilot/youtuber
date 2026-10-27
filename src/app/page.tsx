@@ -58,17 +58,16 @@ export default function Home() {
           hashtags — free AI tools built for YouTube, TikTok and Instagram creators.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          {liveTools.map((t, i) => (
+          <Link href="/start" className="rounded-full bg-accent px-6 py-3 font-semibold text-accent-ink hover:opacity-90">
+            Get my free growth plan →
+          </Link>
+          {liveTools.map((t) => (
             <Link
               key={t.slug}
               href={`/${t.slug}`}
-              className={
-                i === 0
-                  ? "rounded-full bg-accent px-5 py-2.5 font-medium text-accent-ink hover:opacity-90"
-                  : "rounded-full border border-line bg-surface px-5 py-2.5 font-medium hover:border-ink"
-              }
+              className="rounded-full border border-line bg-surface px-5 py-3 font-medium hover:border-ink"
             >
-              {t.name} →
+              {t.name}
             </Link>
           ))}
         </div>

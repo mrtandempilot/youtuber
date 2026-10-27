@@ -9,6 +9,12 @@ export const GOOGLE_SCOPES = [
 
 export const REDIRECT_PATH = "/api/auth/google/callback";
 
+// Pages allowed as the post-login destination (prevents open redirects).
+const NEXT_PAGES = ["/start", "/youtube-channel-analyzer"] as const;
+export function safeNext(next: string | null | undefined): string {
+  return NEXT_PAGES.find((p) => p === next) ?? "/youtube-channel-analyzer";
+}
+
 function creds() {
   const id = process.env.GOOGLE_CLIENT_ID;
   const secret = process.env.GOOGLE_CLIENT_SECRET;

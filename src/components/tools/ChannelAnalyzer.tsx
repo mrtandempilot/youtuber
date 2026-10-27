@@ -84,16 +84,22 @@ export function ChannelAnalyzer() {
     const params = new URLSearchParams(window.location.search);
     const oauthError = params.get("error");
     const justConnected = params.get("connected") === "1";
-    if (oauthError || justConnected) window.history.replaceState(null, "", window.location.pathname);
+    // Deep links from the onboarding wizard: ?auto=mine or ?channel=<id|@handle>
+    const auto = params.get("auto");
+    const channelParam = params.get("channel");
+    if (oauthError || justConnected || auto || channelParam) window.history.replaceState(null, "", window.location.pathname);
 
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((m: Me) => {
         setMe(m);
         if (oauthError) setError(OAUTH_ERRORS[oauthError] ?? OAUTH_ERRORS.oauth);
-        else if (justConnected && m.connected) {
-          track("Channel Connected");
+        else if ((justConnected || auto === "mine") && m.connected) {
+          if (justConnected) track("Channel Connected");
           void analyze({ mine: true });
+        } else if (channelParam) {
+          setInput(channelParam);
+          void analyze({ channel: channelParam });
         }
       })
       .catch(() => setMe({ googleConfigured: false, connected: false, channel: null }));

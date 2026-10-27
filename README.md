@@ -40,6 +40,16 @@ Analiz son 50 video üzerinden yapılır. Her videonun **skoru** = günlük izle
 
 **Kota:** Varsayılan kota günde 10.000 birimdir. Bir analiz yaklaşık 3-4 birim tutar, yani günde ~2.500 analiz yapılabilir. `/c/isim` gibi eski tip linkler arama yaptığı için 100 birim harcar.
 
+## Onboarding wizard (`/start`)
+
+Müşterinin sisteme giriş akışı. Header'daki ve ana sayfadaki "Get your plan" butonları buraya götürüyor.
+
+1. **Kanal:** müşteri ya "Connect YouTube channel" ile Google'a gidip geri döner (`/api/auth/google?next=/start`) ya da kanal linkini yapıştırır. Analiz bu adımda arka planda başlar.
+2. **Hedefler:** ana hedef (izlenme, abone, monetizasyon, Shorts, arama), konu (kanal anahtar kelimeleriyle otomatik doldurulur), haftada kaç video yapabileceği ve format.
+3. **Plan:** ilerleme animasyonu gösterilirken AI kişisel 4 haftalık planı yazar (`/api/youtube/suggest` içinde `mode: "plan"`). Planda bugün yapılacak 3 iş, haftalık video başlıkları, alışkanlıklar ve monetizasyon ilerlemesi var. Sonunda "Open full report" butonu analyzer'ı otomatik açar.
+
+Plan şimdilik tarayıcıda (localStorage) saklanıyor, müşteri geri döndüğünde planını görüyor. Hesap sistemi ve veritabanı (Supabase) eklenince haftalık e-posta raporu ve plan takibi buna bağlanacak.
+
 ## Yeni araç ekleme
 
 1. `src/lib/tools.ts` içine kayıt ekle (`status: "live"`, SEO metinleri, how-to, FAQ).

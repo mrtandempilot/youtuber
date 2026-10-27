@@ -10,11 +10,38 @@ Write titles, descriptions, tags and hashtags in the main language of the channe
 Never invent statistics, never promise specific view counts, never suggest clickbait that misrepresents the video.
 Tags: no "#", 2–4 words max each, most specific first. Hashtags: start with "#", no spaces, max 5.`;
 
-type Mode = "audit" | "improve" | "new";
+type Mode = "audit" | "improve" | "new" | "plan";
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
+const GOALS: Record<string, string> = {
+  views: "get more views per video",
+  subscribers: "grow subscribers faster",
+  monetize: "reach YouTube Partner Program requirements (1,000 subscribers + 4,000 watch hours, or 10M Shorts views)",
+  shorts: "grow with YouTube Shorts",
+  search: "rank higher in YouTube and Google search",
+};
+
 function prompt(mode: Mode, context: string, body: Record<string, unknown>): { prompt: string; maxTokens: number } | null {
+  if (mode === "plan") {
+    const goal = GOALS[str(body.goal, 20)] ?? GOALS.views;
+    const perWeek = Math.min(Math.max(Number(body.videosPerWeek) || 1, 1), 14);
+    return {
+      maxTokens: 2500,
+      prompt: `${context}
+
+The creator just signed up. Their main goal: ${goal}.
+Niche / topic in their words: ${str(body.niche, 200) || "use the channel data"}
+They can publish about ${perWeek} video(s) per week. Preferred format: ${str(body.format, 20) || "mixed"}.
+
+Build a personal 4-week growth plan. JSON shape:
+{"headline":"one motivating sentence about where they stand","summary":"3 sentences: current situation vs goal, based on the data",
+"quickWins":[{"title":"action doable today","detail":"exactly what to do, referencing their real videos/tags"}],
+"weeks":[{"week":1,"focus":"theme of the week","videos":[{"title":"ready-to-use title","format":"short|long","why":"which data point supports it"}],"tasks":["non-video task"]}],
+"habits":["ongoing rule to follow"]}
+3 quick wins, exactly 4 weeks with ${perWeek} video(s) each (max 4 listed per week), 3 habits.`,
+    };
+  }
   if (mode === "audit") {
     return {
       maxTokens: 1500,
@@ -69,7 +96,7 @@ export async function POST(request: Request) {
   }
 
   const mode = body.mode as Mode;
-  if (!["audit", "improve", "new"].includes(mode)) return Response.json({ error: "Unknown mode." }, { status: 400 });
+  if (!["audit", "improve", "new", "plan"].includes(mode)) return Response.json({ error: "Unknown mode." }, { status: 400 });
   const context = str(body.context, 5000);
   if (!context) return Response.json({ error: "Analyze a channel first." }, { status: 400 });
 

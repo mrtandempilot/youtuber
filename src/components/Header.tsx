@@ -29,10 +29,10 @@ export function Header() {
           ))}
         </nav>
         <Link
-          href="/#tools"
-          className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-bg hover:opacity-90"
+          href="/start"
+          className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink hover:opacity-90"
         >
-          All tools
+          Get your plan
         </Link>
       </div>
     </header>

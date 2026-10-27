@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import { exchangeCode } from "@/lib/google-oauth";
+import { exchangeCode, safeNext } from "@/lib/google-oauth";
 import { takeOAuthState, writeSession } from "@/lib/session";
 import { absoluteUrl } from "@/lib/site";
 import { getChannel, YtError } from "@/lib/youtube-api";
 
-const back = (q: string) => NextResponse.redirect(absoluteUrl(`/youtube-channel-analyzer${q}`));
-
 // Google redirects here after consent. Exchanges the code, loads the creator's channel, stores the session.
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const expected = await takeOAuthState();
+  const [expected, nextRaw] = ((await takeOAuthState()) ?? "").split("|");
+  const back = (q: string) => NextResponse.redirect(absoluteUrl(`${safeNext(nextRaw)}${q}`));
 
   if (params.get("error")) return back("?error=denied");
   const code = params.get("code");
@@ -36,7 +35,7 @@ export async function GET(request: Request) {
       channelTitle: channel.title,
       channelThumb: channel.thumbnail,
     });
-    return back("?connected=1#analysis");
+    return back("?connected=1");
   } catch (err) {
     console.error("google oauth callback failed", err);
     return back("?error=oauth");

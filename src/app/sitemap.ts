@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const latest = liveTools.map((t) => t.updated).sort().at(-1);
   return [
     { url: absoluteUrl("/"), lastModified: latest, changeFrequency: "weekly", priority: 1 },
+    { url: absoluteUrl("/start"), changeFrequency: "monthly", priority: 0.8 },
     ...liveTools.map((t) => ({
       url: absoluteUrl(`/${t.slug}`),
       lastModified: t.updated,
