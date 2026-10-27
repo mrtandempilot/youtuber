@@ -27,7 +27,7 @@ function prompt(mode: Mode, context: string, body: Record<string, unknown>): { p
     const goal = GOALS[str(body.goal, 20)] ?? GOALS.views;
     const perWeek = Math.min(Math.max(Number(body.videosPerWeek) || 1, 1), 14);
     return {
-      maxTokens: 2500,
+      maxTokens: 4000,
       prompt: `${context}
 
 The creator just signed up. Their main goal: ${goal}.
@@ -44,7 +44,7 @@ Build a personal 4-week growth plan. JSON shape:
   }
   if (mode === "audit") {
     return {
-      maxTokens: 1500,
+      maxTokens: 2500,
       prompt: `${context}
 
 Write a short channel audit. JSON shape:
@@ -57,7 +57,7 @@ Write a short channel audit. JSON shape:
     const title = str(v.title, 200);
     if (!title) return null;
     return {
-      maxTokens: 1500,
+      maxTokens: 3000,
       prompt: `${context}
 
 Improve the metadata of this existing video so it gets found more in YouTube search and suggestions.
@@ -68,13 +68,13 @@ Current description:
 """${str(v.description, 1500)}"""
 
 JSON shape:
-{"diagnosis":["what is holding it back"],"titles":["3 better titles, under 70 chars"],"description":"full improved description (first 2 lines hook + keywords, then summary, then hashtags)","tags":["15 tags"],"hashtags":["3–5"],"thumbnailText":["3 short thumbnail text ideas"]}`,
+{"diagnosis":["what is holding it back"],"titles":["3 better titles, under 70 chars"],"description":"improved description, max 1200 characters (first 2 lines hook + keywords, then summary, then hashtags)","tags":["15 tags"],"hashtags":["3–5"],"thumbnailText":["3 short thumbnail text ideas"]}`,
     };
   }
   const topic = str(body.topic, 300);
   if (topic.length < 3) return null;
   return {
-    maxTokens: 1800,
+    maxTokens: 3500,
     prompt: `${context}
 
 The creator is planning a NEW video.
@@ -83,7 +83,7 @@ Format: ${body.format === "short" ? "YouTube Short" : "long video"}
 Notes: ${str(body.notes, 500) || "none"}
 
 JSON shape:
-{"titles":["5 titles, under 70 chars, in the style of the channel's best videos"],"description":"full SEO description with hook, summary, ${body.format === "short" ? "" : "placeholder chapters (00:00 Intro …), "}call to action and hashtags","tags":["15–20 tags"],"hashtags":["3–5"],"keywords":["5 main search keywords to target"],"thumbnailText":["3 ideas"],"hook":"first 5 seconds script idea"}`,
+{"titles":["5 titles, under 70 chars, in the style of the channel's best videos"],"description":"SEO description, max 1500 characters, with hook, summary, ${body.format === "short" ? "" : "placeholder chapters (00:00 Intro …), "}call to action and hashtags","tags":["15–20 tags"],"hashtags":["3–5"],"keywords":["5 main search keywords to target"],"thumbnailText":["3 ideas"],"hook":"first 5 seconds script idea"}`,
   };
 }
 
